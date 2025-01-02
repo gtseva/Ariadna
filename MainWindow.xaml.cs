@@ -1,27 +1,54 @@
-﻿using System;
+using System;
+using System.Collections.Generic;
 using System.IO;
-using System.Text;
+using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Navigation;
 using NAudio.Wave;
 
 namespace Ariadna
 {
-    
-    /// Interaccion Logica de xaml a cs
-  
     public partial class MainWindow : Window
     {
         private WaveOutEvent waveOut = new WaveOutEvent();
         private AudioFileReader currentTrack;
-        private string musicFolder = string.Empty;
+        private const string CacheFileName = "music_cache.json";
+        private List<string> cachedMusicList = new List<string>();
 
         public MainWindow()
         {
             InitializeComponent();
+            LoadCache();
+        }
+
+        private void LoadCache()
+        {
+            if (File.Exists(CacheFileName))
+            {
+                try
+                {
+                    string json = File.ReadAllText(CacheFileName);
+                    cachedMusicList = JsonSerializer.Deserialize<List<string>>(json);
+                    UpdateMusicList();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Error al cargar la caché: {ex.Message}");
+                }
+            }
+        }
+
+        private void SaveCache()
+        {
+            try
+            {
+                string json = JsonSerializer.Serialize(cachedMusicList);
+                File.WriteAllText(CacheFileName, json);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error al guardar la caché: {ex.Message}");
+            }
         }
 
         private void OpenFolderButton_Click(object sender, RoutedEventArgs e)
@@ -30,18 +57,17 @@ namespace Ariadna
             var result = dialog.ShowDialog();
             if (result == System.Windows.Forms.DialogResult.OK)
             {
-                musicFolder = dialog.SelectedPath;
-                LoadMusicList();
+                string folderPath = dialog.SelectedPath;
+                cachedMusicList = new List<string>(Directory.GetFiles(folderPath, "*.mp3"));
+                SaveCache();
+                UpdateMusicList();
             }
         }
 
-        private void LoadMusicList()
+        private void UpdateMusicList()
         {
-            if (string.IsNullOrEmpty(musicFolder)) return;
-
             MusicList.Items.Clear();
-            var files = Directory.GetFiles(musicFolder, "*.mp3");
-            foreach (var file in files)
+            foreach (var file in cachedMusicList)
             {
                 MusicList.Items.Add(file);
             }
