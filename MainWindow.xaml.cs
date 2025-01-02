@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
@@ -14,11 +14,13 @@ namespace Ariadna
         private AudioFileReader currentTrack;
         private const string CacheFileName = "music_cache.json";
         private List<string> cachedMusicList = new List<string>();
+        private string musicFolder = string.Empty;
 
         public MainWindow()
         {
             InitializeComponent();
-            LoadCache();
+            LoadCache();  // Cargar la caché al iniciar la aplicación
+            Volumen.ValueChanged += Volumen_ValueChanged;  // Agregar el manejador del volumen
         }
 
         private void LoadCache()
@@ -57,10 +59,10 @@ namespace Ariadna
             var result = dialog.ShowDialog();
             if (result == System.Windows.Forms.DialogResult.OK)
             {
-                string folderPath = dialog.SelectedPath;
-                cachedMusicList = new List<string>(Directory.GetFiles(folderPath, "*.mp3"));
-                SaveCache();
-                UpdateMusicList();
+                musicFolder = dialog.SelectedPath;
+                cachedMusicList = new List<string>(Directory.GetFiles(musicFolder, "*.mp3"));
+                SaveCache();  // Guardar la nueva lista de música en caché
+                UpdateMusicList();  // Actualizar la lista de canciones en la interfaz
             }
         }
 
@@ -77,7 +79,8 @@ namespace Ariadna
         {
             if (MusicList.SelectedItem == null) return;
 
-            PlayTrack(MusicList.SelectedItem.ToString());
+            string selectedTrack = MusicList.SelectedItem.ToString();
+            PlayTrack(selectedTrack);
         }
 
         private void PlayTrack(string filePath)
@@ -120,6 +123,21 @@ namespace Ariadna
             {
                 currentTrack.CurrentTime = currentTrack.CurrentTime.Subtract(TimeSpan.FromSeconds(10));
             }
+        }
+
+        private void Volumen_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            if (currentTrack != null)
+            {
+                // Ajustar el volumen según el valor del slider
+                currentTrack.Volume = (float)Volumen.Value / 100f;
+            }
+        }
+
+        // Función para guardar la lista de música en la caché
+        private void SaveCacheButton_Click(object sender, RoutedEventArgs e)
+        {
+            SaveCache();
         }
     }
 }
